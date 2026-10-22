@@ -22,7 +22,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   --line:#D7DBE3; --line-thick:#8B93A3;
   --accent:#2457C5; --pencil:#7A8291; --ok:#1F8A4C;
   --tint:rgba(36,87,197,.08); --tint-strong:rgba(36,87,197,.20); --sel:rgba(36,87,197,.30);
-  --err:#C0392B; --err-bg:rgba(192,57,43,.14);
+  --err:#C0392B; --err-bg:rgba(192,57,43,.14); --flash:rgba(31,138,76,.24);
   --surface:#FFFFFF; --surface-2:#E9ECF2; --shadow:rgba(26,33,48,.18);
   --font-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-label:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
@@ -32,7 +32,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   --line:#2A2F3A; --line-thick:#5A6170;
   --accent:#7FA7FF; --pencil:#8C93A0; --ok:#5CCB8A;
   --tint:rgba(127,167,255,.12); --tint-strong:rgba(127,167,255,.28); --sel:rgba(127,167,255,.40);
-  --err:#FF7B7B; --err-bg:rgba(255,123,123,.18);
+  --err:#FF7B7B; --err-bg:rgba(255,123,123,.18); --flash:rgba(92,203,138,.28);
   --surface:#1E222B; --surface-2:#272C37; --shadow:rgba(0,0,0,.5);
   color-scheme:dark;
 }}
@@ -41,7 +41,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   --line:#2A2F3A; --line-thick:#5A6170;
   --accent:#7FA7FF; --pencil:#8C93A0; --ok:#5CCB8A;
   --tint:rgba(127,167,255,.12); --tint-strong:rgba(127,167,255,.28); --sel:rgba(127,167,255,.40);
-  --err:#FF7B7B; --err-bg:rgba(255,123,123,.18);
+  --err:#FF7B7B; --err-bg:rgba(255,123,123,.18); --flash:rgba(92,203,138,.28);
   --surface:#1E222B; --surface-2:#272C37; --shadow:rgba(0,0,0,.5);
   color-scheme:dark;
 }
@@ -53,6 +53,9 @@ body{
   padding-block:12px 24px; -webkit-tap-highlight-color:transparent;
 }
 .app{max-width:520px;margin:0 auto;display:grid;gap:14px}
+/* Short viewports: shrink the whole column so board, tools and pad fit on one screen (height is roughly 1.14x width + 240px). */
+.app{max-width:clamp(280px,calc((100vh - 240px) / 1.14),520px)}
+@supports (height:100dvh){ .app{max-width:clamp(280px,calc((100dvh - 240px) / 1.14),520px)} }
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .title{font-family:var(--font-label);font-weight:600;font-size:1.35rem;letter-spacing:.06em;text-transform:uppercase}
 .meta{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:.95rem;display:flex;gap:8px;align-items:baseline}
@@ -90,6 +93,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .n{display:grid;grid-template-columns:repeat(3,1fr);width:100%;height:100%;padding:3%}
 .n i{font-style:normal;font-size:2.5cqw;line-height:1;color:var(--pencil);display:grid;place-items:center;visibility:hidden}
 .n i.on{visibility:visible}
+.n i.hl{color:var(--paper);font-weight:700;background:var(--accent);border-radius:3px}
 .cell.filled .n{display:none}
 
 .status{min-height:1.3em;font-size:.95rem;color:var(--ink-2);text-align:center}
@@ -114,8 +118,10 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   display:grid;place-items:center;gap:0;font-size:1.5rem;color:var(--accent);min-width:0;padding:0
 }
 .key small{font-size:.65rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
-.key.done{opacity:.3}
-.key:active{background:var(--surface-2)}
+.key:disabled{opacity:.3;cursor:default}
+.pad.pencil .key{border-style:dashed;border-color:var(--accent)}
+.pad.pencil .key>span{font-size:1rem}
+.key:not(:disabled):active{background:var(--surface-2)}
 
 .foot{font-size:.8rem;color:var(--ink-2);text-align:center;line-height:1.5}
 
@@ -291,6 +297,7 @@ function render(){
   const sel=S.sel, selVal=sel!=null?S.cells[sel]:0;
   const conflict=new Array(81).fill(false);
   for(let i=0;i<81;i++){ const v=S.cells[i]; if(!v)continue; for(const j of PEERS[i]) if(S.cells[j]===v){conflict[i]=true;break;} }
+  const counts=new Array(10).fill(0); for(const v of S.cells) counts[v]++;
   const wrong=new Set(S.wrong), hinted=new Set(S.hinted);
   if(prefs.live) for(let i=0;i<81;i++) if(!S.puzzle[i]&&S.cells[i]&&S.cells[i]!==S.solution[i]) wrong.add(i);
   for(let i=0;i<81;i++){ const el=cellEls[i], v=S.cells[i];
@@ -304,10 +311,10 @@ function render(){
     el.className=cls;
     el.firstChild.textContent=v||'';
     const notes=S.notes[i]; const is=el.lastChild.children;
-    for(let d=0;d<9;d++) is[d].className=(notes>>d)&1?'on':'';
+    for(let d=0;d<9;d++) is[d].className=(notes>>d)&1&&counts[d+1]<9?(selVal===d+1?'on hl':'on'):'';
   }
-  const counts=new Array(10).fill(0); for(const v of S.cells) counts[v]++;
-  for(let d=1;d<=9;d++){ const k=keyEls[d-1]; const left=9-counts[d]; k.lastChild.textContent=left>0?left:''; k.className='key'+(left<=0?' done':''); }
+  for(let d=1;d<=9;d++){ const k=keyEls[d-1]; const left=9-counts[d]; k.lastChild.textContent=left>0?left:''; k.disabled=left<=0; }
+  padEl.classList.toggle('pencil',S.pencil);
   $('diffLabel').textContent=DIFFS[S.diff].label;
   timerEl.textContent=fmt(S.elapsed);
   $('pencilBtn').setAttribute('aria-pressed',String(S.pencil)); $('pencilBtn').lastChild.textContent=S.pencil?'on':'off';
@@ -322,11 +329,12 @@ function render(){
 function snapshot(){ S.undo.push({cells:S.cells.slice(),notes:S.notes.slice()}); if(S.undo.length>200)S.undo.shift(); }
 function place(d){
   const i=S.sel; if(i==null||S.solved||S.puzzle[i])return;
+  if(S.cells.filter(v=>v===d).length>=9)return;
   snapshot();
   if(S.pencil){ if(S.cells[i])return; S.notes[i]^=1<<(d-1); }
   else { if(S.cells[i]===d){ S.cells[i]=0; } else { S.cells[i]=d; S.notes[i]=0; for(const j of PEERS[i]) S.notes[j]&=~(1<<(d-1)); } }
   S.wrong=S.wrong.filter(x=>x!==i); S.hinted=S.hinted.filter(x=>x!==i);
-  setStatus(''); afterMove();
+  setStatus(''); afterMove(); if(!S.pencil&&S.cells[i])flashUnits(i);
 }
 function erase(){ const i=S.sel; if(i==null||S.solved||S.puzzle[i])return; if(!S.cells[i]&&!S.notes[i])return; snapshot(); S.cells[i]=0; S.notes[i]=0; S.wrong=S.wrong.filter(x=>x!==i); S.hinted=S.hinted.filter(x=>x!==i); setStatus(''); afterMove(); }
 function undo(){ const u=S.undo.pop(); if(!u)return; S.cells=u.cells; S.notes=u.notes; S.wrong=[]; setStatus(''); afterMove(); }
@@ -335,7 +343,7 @@ function hint(){
   let i=S.sel; if(i==null||S.puzzle[i]||S.cells[i]===S.solution[i]){ const open=[]; for(let k=0;k<81;k++) if(!S.puzzle[k]&&S.cells[k]!==S.solution[k])open.push(k); if(!open.length)return; i=open[(Math.random()*open.length)|0]; }
   snapshot(); S.cells[i]=S.solution[i]; S.notes[i]=0; for(const j of PEERS[i]) S.notes[j]&=~(1<<(S.solution[i]-1));
   S.hinted.push(i); S.wrong=S.wrong.filter(x=>x!==i); S.hints++; S.sel=i;
-  setStatus('Hint used ('+S.hints+' so far)'); afterMove();
+  setStatus('Hint used ('+S.hints+' so far)'); afterMove(); flashUnits(i);
 }
 function check(){
   if(S.solved)return; const w=[]; let filled=0;
@@ -343,6 +351,17 @@ function check(){
   S.wrong=w;
   if(!filled)setStatus('Nothing to check yet'); else if(w.length)setStatus(w.length+(w.length===1?' cell is':' cells are')+' wrong','bad'); else setStatus('All correct so far','good');
   render(); save();
+}
+// A unit counts as finished when it is full with no repeated digit. Deliberately not checked
+// against the solution, so the flash never reveals more than the player can already see.
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
+function flashUnits(i){
+  if(S.solved||reduceMotion.matches)return;
+  for(const unit of [UNITS[R(i)*3],UNITS[C(i)*3+1],UNITS[B(i)*3+2]]){
+    if(new Set(unit.map(k=>S.cells[k]).filter(Boolean)).size!==9)continue;
+    unit.forEach((k,n)=>{ const el=cellEls[k]; const c=getComputedStyle(el).getPropertyValue('--flash');
+      el.animate([{backgroundColor:c,offset:0}],{duration:600,delay:n*30,easing:'ease-out'}); });
+  }
 }
 function afterMove(){ render(); checkDone(); save(); }
 function checkDone(){
