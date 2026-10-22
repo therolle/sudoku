@@ -97,6 +97,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .status.good{color:var(--ok)}
 
 .tools{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.tools.live{grid-template-columns:repeat(4,1fr)}
 .tool{
   font-family:var(--font-label);font-size:1rem;letter-spacing:.05em;text-transform:uppercase;
   background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:48px;padding:6px 2px;
@@ -133,6 +134,9 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .diff .name{font-family:var(--font-label);font-size:1.15rem;letter-spacing:.05em;text-transform:uppercase}
 .diff .desc{font-size:.85rem;color:var(--ink-2)}
 .diff .stat{font-size:.8rem;color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.opt{background:var(--surface)}
+.opt .stat{font-family:var(--font-label);font-size:1rem;letter-spacing:.05em;text-transform:uppercase;padding:4px 10px;border-radius:6px;background:var(--surface-2);color:var(--ink)}
+.opt[aria-checked="true"] .stat{background:var(--accent);color:var(--paper)}
 .big{font-size:2.4rem;font-variant-numeric:tabular-nums;line-height:1.1}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .row .btn{flex:1}
@@ -150,7 +154,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <div class="board" id="board" aria-label="Sudoku grid"></div>
   <div class="status" id="status"></div>
 
-  <div class="tools">
+  <div class="tools" id="tools">
     <button class="tool" id="undoBtn">Undo</button>
     <button class="tool" id="eraseBtn">Erase</button>
     <button class="tool" id="pencilBtn" aria-pressed="false">Pencil<small>off</small></button>
@@ -166,6 +170,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <div class="panel">
     <h2>New puzzle</h2>
     <div class="diffs" id="diffs"></div>
+    <button class="diff opt" id="liveBtn" role="switch" aria-checked="false"><span><span class="name">Show mistakes</span><br><span class="desc">Wrong digits turn red as you place them. Best times skip these games.</span></span><span class="stat" id="liveState">Off</span></button>
     <button class="btn" id="cancelNew">Keep playing</button>
   </div>
 </div>
@@ -260,11 +265,13 @@ function generate(key){
 /* ---------- state ---------- */
 const KEY='quiet-sudoku-v1';
 let S=null; let stats={solved:{easy:0,medium:0,hard:0,expert:0},best:{easy:null,medium:null,hard:null,expert:null}};
+let prefs={live:false};
 let timerId=null;
+// S.assisted: live mistakes were on at some point this game, so its time does not count as a best.
 function fresh(key){ const {puzzle,solution}=generate(key);
-  S={diff:key,puzzle,solution,cells:puzzle.slice(),notes:new Array(81).fill(0),elapsed:0,hints:0,solved:false,sel:puzzle.indexOf(0),pencil:false,undo:[],wrong:[],hinted:[]}; }
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify({S:{...S,undo:S.undo.slice(-30)},stats})); }catch(e){} }
-function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.S&&d.S.puzzle){ S=d.S; S.undo=S.undo||[]; S.wrong=S.wrong||[]; S.hinted=S.hinted||[]; } if(d&&d.stats) stats=d.stats; }catch(e){} }
+  S={diff:key,puzzle,solution,cells:puzzle.slice(),notes:new Array(81).fill(0),elapsed:0,hints:0,solved:false,sel:puzzle.indexOf(0),pencil:false,undo:[],wrong:[],hinted:[],assisted:prefs.live}; }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify({S:{...S,undo:S.undo.slice(-30)},stats,prefs})); }catch(e){} }
+function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.S&&d.S.puzzle){ S=d.S; S.undo=S.undo||[]; S.wrong=S.wrong||[]; S.hinted=S.hinted||[]; } if(d&&d.stats) stats=d.stats; if(d&&d.prefs) prefs={...prefs,...d.prefs}; }catch(e){} }
 
 /* ---------- dom ---------- */
 const $=id=>document.getElementById(id);
@@ -285,6 +292,7 @@ function render(){
   const conflict=new Array(81).fill(false);
   for(let i=0;i<81;i++){ const v=S.cells[i]; if(!v)continue; for(const j of PEERS[i]) if(S.cells[j]===v){conflict[i]=true;break;} }
   const wrong=new Set(S.wrong), hinted=new Set(S.hinted);
+  if(prefs.live) for(let i=0;i<81;i++) if(!S.puzzle[i]&&S.cells[i]&&S.cells[i]!==S.solution[i]) wrong.add(i);
   for(let i=0;i<81;i++){ const el=cellEls[i], v=S.cells[i];
     let cls='cell';
     if(S.puzzle[i])cls+=' given';
@@ -304,6 +312,8 @@ function render(){
   timerEl.textContent=fmt(S.elapsed);
   $('pencilBtn').setAttribute('aria-pressed',String(S.pencil)); $('pencilBtn').lastChild.textContent=S.pencil?'on':'off';
   $('undoBtn').disabled=S.undo.length===0;
+  $('checkBtn').hidden=prefs.live; $('tools').classList.toggle('live',prefs.live);
+  $('liveBtn').setAttribute('aria-checked',String(prefs.live)); $('liveState').textContent=prefs.live?'On':'Off';
   const total=Object.values(stats.solved).reduce((a,b)=>a+b,0);
   const bests=Object.keys(DIFFS).filter(k=>stats.best[k]!=null).map(k=>DIFFS[k].label.toLowerCase()+' '+fmt(stats.best[k]));
   $('foot').textContent=(total?'Solved '+total+(bests.length?' · best '+bests.join(', '):''):'No ads. No account. Just the grid.');
@@ -338,10 +348,12 @@ function afterMove(){ render(); checkDone(); save(); }
 function checkDone(){
   for(let i=0;i<81;i++) if(S.cells[i]!==S.solution[i])return;
   S.solved=true; stopTimer();
-  stats.solved[S.diff]++; if(stats.best[S.diff]==null||S.elapsed<stats.best[S.diff])stats.best[S.diff]=S.elapsed;
+  stats.solved[S.diff]++;
+  const prev=stats.best[S.diff];
+  if(!S.assisted&&(prev==null||S.elapsed<prev))stats.best[S.diff]=S.elapsed;
   $('doneTime').textContent=fmt(S.elapsed);
-  const best=stats.best[S.diff]===S.elapsed&&stats.solved[S.diff]>1?' New best for this level.':'';
-  $('doneInfo').textContent=DIFFS[S.diff].label+', '+(S.hints?S.hints+(S.hints===1?' hint':' hints'):'no hints')+'.'+best;
+  const best=!S.assisted&&prev!=null&&S.elapsed<prev?' New best for this level.':'';
+  $('doneInfo').textContent=DIFFS[S.diff].label+', '+(S.hints?S.hints+(S.hints===1?' hint':' hints'):'no hints')+(S.assisted?', mistakes shown':'')+'.'+best;
   $('doneSheet').hidden=false; render(); save();
 }
 
@@ -370,6 +382,7 @@ $('hintBtn').addEventListener('click',hint);
 $('checkBtn').addEventListener('click',check);
 $('newBtn').addEventListener('click',openNew);
 $('cancelNew').addEventListener('click',()=>{ $('newSheet').hidden=true; });
+$('liveBtn').addEventListener('click',()=>{ prefs.live=!prefs.live; if(prefs.live&&!S.solved)S.assisted=true; S.wrong=[]; setStatus(''); render(); save(); });
 $('diffs').addEventListener('click',e=>{ const b=e.target.closest('.diff'); if(b)startNew(b.dataset.k); });
 $('againBtn').addEventListener('click',()=>startNew(S.diff));
 $('changeBtn').addEventListener('click',()=>{ $('doneSheet').hidden=true; openNew(); });
