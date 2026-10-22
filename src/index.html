@@ -175,6 +175,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 <div class="sheet" id="newSheet" hidden>
   <div class="panel">
     <h2>New puzzle</h2>
+    <div class="status" id="newInfo" style="text-align:left" hidden></div>
     <div class="diffs" id="diffs"></div>
     <button class="diff opt" id="liveBtn" role="switch" aria-checked="false"><span><span class="name">Show mistakes</span><br><span class="desc">Wrong digits turn red as you place them. Best times skip these games.</span></span><span class="stat" id="liveState">Off</span></button>
     <button class="btn" id="cancelNew">Keep playing</button>
@@ -319,6 +320,7 @@ function render(){
   timerEl.textContent=fmt(S.elapsed);
   $('pencilBtn').setAttribute('aria-pressed',String(S.pencil)); $('pencilBtn').lastChild.textContent=S.pencil?'on':'off';
   $('undoBtn').disabled=S.undo.length===0;
+  $('eraseBtn').disabled=sel==null||S.solved||!!S.puzzle[sel]||(!S.cells[sel]&&!S.notes[sel]);
   $('checkBtn').hidden=prefs.live; $('tools').classList.toggle('live',prefs.live);
   $('liveBtn').setAttribute('aria-checked',String(prefs.live)); $('liveState').textContent=prefs.live?'On':'Off';
   const total=Object.values(stats.solved).reduce((a,b)=>a+b,0);
@@ -326,7 +328,7 @@ function render(){
   $('foot').textContent=(total?'Solved '+total+(bests.length?' · best '+bests.join(', '):''):'No ads. No account. Just the grid.');
 }
 
-function snapshot(){ S.undo.push({cells:S.cells.slice(),notes:S.notes.slice()}); if(S.undo.length>200)S.undo.shift(); }
+function snapshot(){ S.undo.push({cells:S.cells.slice(),notes:S.notes.slice(),wrong:S.wrong.slice(),hinted:S.hinted.slice()}); if(S.undo.length>200)S.undo.shift(); }
 function place(d){
   const i=S.sel; if(i==null||S.solved||S.puzzle[i])return;
   if(S.cells.filter(v=>v===d).length>=9)return;
@@ -337,7 +339,7 @@ function place(d){
   setStatus(''); afterMove(); if(!S.pencil&&S.cells[i])flashUnits(i);
 }
 function erase(){ const i=S.sel; if(i==null||S.solved||S.puzzle[i])return; if(!S.cells[i]&&!S.notes[i])return; snapshot(); S.cells[i]=0; S.notes[i]=0; S.wrong=S.wrong.filter(x=>x!==i); S.hinted=S.hinted.filter(x=>x!==i); setStatus(''); afterMove(); }
-function undo(){ const u=S.undo.pop(); if(!u)return; S.cells=u.cells; S.notes=u.notes; S.wrong=[]; setStatus(''); afterMove(); }
+function undo(){ const u=S.undo.pop(); if(!u)return; S.cells=u.cells; S.notes=u.notes; S.wrong=u.wrong||[]; S.hinted=u.hinted||[]; setStatus(''); afterMove(); }
 function hint(){
   if(S.solved)return;
   let i=S.sel; if(i==null||S.puzzle[i]||S.cells[i]===S.solution[i]){ const open=[]; for(let k=0;k<81;k++) if(!S.puzzle[k]&&S.cells[k]!==S.solution[k])open.push(k); if(!open.length)return; i=open[(Math.random()*open.length)|0]; }
@@ -387,6 +389,10 @@ function openNew(){ const box=$('diffs'); box.innerHTML='';
     const st=stats.solved[k]?'solved '+stats.solved[k]+(stats.best[k]!=null?'<br>best '+fmt(stats.best[k]):''):'';
     b.innerHTML='<span><span class="name">'+DIFFS[k].label+'</span><br><span class="desc">'+DIFFS[k].desc+'</span></span><span class="stat">'+st+'</span>';
     box.appendChild(b); }
+  const open=S.puzzle.filter(v=>!v).length, done=S.cells.filter((v,i)=>v&&!S.puzzle[i]).length;
+  const started=!S.solved&&(done>0||S.notes.some(Boolean));
+  $('newInfo').hidden=!started;
+  if(started)$('newInfo').textContent='You\'re '+fmt(S.elapsed).replace(/^0(?=\d:)/,'')+' into a '+DIFFS[S.diff].label+', '+done+' of '+open+' cells filled. Picking a level starts over.';
   $('newSheet').hidden=false; }
 function startNew(k){ $('newSheet').hidden=true; $('doneSheet').hidden=true; boardEl.classList.add('dealing'); setStatus('Dealing a new '+DIFFS[k].label.toLowerCase()+' puzzle…');
   setTimeout(()=>{ fresh(k); boardEl.classList.remove('dealing'); setStatus(''); render(); save(); startTimer(); },30); }
