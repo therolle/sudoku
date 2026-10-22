@@ -16,5 +16,6 @@ This is a finished single-page app (see README.md). Your job is to get it live o
 
 ## Conventions
 - Ask before anything that costs money beyond the Amplify free tier or that creates IAM resources.
-- When `index.html` changes, bump `CACHE` in `sw.js` so installed clients refresh.
+- The site lives in `src/` (Amplify publishes that directory; serve locally with `python3 -m http.server 8080 -d src`).
+- When `src/index.html` changes, bump `CACHE` in `src/sw.js` so installed clients refresh.
 - Keep commits small and plainly worded.

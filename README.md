@@ -9,16 +9,18 @@ Ad-free sudoku as a single static page. No backend, no account, no tracking.
 
 ## Files
 
-- `index.html` the whole app (CSS and JS inline)
-- `manifest.json`, `icon.svg`, `icon-192.png`, `icon-512.png` PWA bits
-- `sw.js` service worker, caches the shell for offline use
-- `amplify.yml` Amplify Hosting build spec (no build step)
+`src/` is the site root; everything in it is published as is.
+
+- `src/index.html` the whole app (CSS and JS inline)
+- `src/manifest.json`, `src/icon.svg`, `src/icon-192.png`, `src/icon-512.png` PWA bits
+- `src/sw.js` service worker, caches the shell for offline use
+- `amplify.yml` Amplify Hosting build spec (no build step, publishes `src/`)
 
 ## Run locally
 
-Any static server works, for example:
+Any static server pointed at `src/` works, for example:
 
-    python3 -m http.server 8080
+    python3 -m http.server 8080 -d src
 
 Then open http://localhost:8080. The service worker only registers over http://localhost or https.
 
