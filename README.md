@@ -5,7 +5,8 @@ Ad-free sudoku as a single static page. No backend, no account, no tracking.
 - Unlimited puzzles generated in the browser (pure code: randomised backtracking fill, symmetric digging with a uniqueness check, singles-only grader for difficulty).
 - Four levels: Easy 40 clues, Medium 33, Hard 28, Expert 24.
 - Pencil marks, undo, erase, hint, check, conflict highlighting, timer, per-level stats.
-- Optional "Show mistakes" mode (in the New sheet): wrong digits turn red as you place them and Check is hidden. Games played this way do not set best times.
+- Optional "Show mistakes" mode (in the menu): wrong digits turn red as you place them and Check is hidden. Games played this way do not set best times.
+- Menu (hamburger, top right) holds the level picker, options and a colour legend explaining every marker on the board.
 - Progress is saved in localStorage. Installable as a PWA; works offline after first load.
 
 ## Files

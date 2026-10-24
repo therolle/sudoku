@@ -59,17 +59,19 @@ body{
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:12px 20px; -webkit-tap-highlight-color:transparent;
+  /* body centres the column vertically, so .app starts at the header and the overlay panels line up with it. */
+  display:grid;align-content:center;
+  min-height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
 }
 /* Short viewports: shrink the whole column so board, tools and pad fit on one screen (height is roughly 1.14x width + 250px). */
 .app{
-  margin:0 auto;display:grid;gap:14px;align-content:center;
+  position:relative;margin:0 auto;width:100%;display:grid;gap:14px;
   max-width:clamp(280px,calc((100vh - 250px) / 1.14),520px);
-  min-height:calc(100vh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
 }
-@supports (height:100dvh){ .app{
-  max-width:clamp(280px,calc((100dvh - 250px) / 1.14),520px);
-  min-height:calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
-}}
+@supports (height:100dvh){
+  body{min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+  .app{max-width:clamp(280px,calc((100dvh - 250px) / 1.14),520px)}
+}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .title{font-weight:700;font-size:1.1rem;letter-spacing:-.01em;white-space:nowrap}
 .meta,.btn{white-space:nowrap}
@@ -80,6 +82,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .btn{font-weight:600;font-size:.95rem;padding:10px 18px;border-radius:999px;background:var(--surface-2);min-height:42px}
 .btn.primary{background:var(--accent);color:var(--on-accent)}
 .btn.soft{background:var(--tint-strong);color:var(--accent);padding:8px 16px;min-height:38px}
+.btn.icon{width:40px;height:40px;min-height:40px;padding:0;display:grid;place-items:center}
+.btn.icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+/* While a sheet is open the same button turns into an X and is raised above the backdrop, so the menu closes where it opened. */
+.btn.icon .x,.btn.icon.open .lines{display:none}
+.btn.icon.open .x{display:block}
+.btn.icon.open{position:relative;z-index:21;background:none;color:var(--ink)}
+@media (hover:hover){ .btn.icon.open:hover{background:var(--surface-2)} }
 
 .board{
   position:relative;width:100%;aspect-ratio:1;max-width:100%;container-type:inline-size;
@@ -141,39 +150,78 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .foot{font-size:.78rem;color:var(--ink-2);text-align:center;line-height:1.5}
 
-.sheet{position:fixed;inset:0;z-index:20;display:grid;align-items:end;background:var(--shadow);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+/* Sheets live inside .app. Desktop: the panel covers the whole play column with a 12px bleed.
+   Phones: it fills the screen. Either way its header row sits exactly where the app header is,
+   so the raised header button becomes the panel's close button in the same spot. */
+.sheet{position:absolute;inset:0;z-index:20}
+.sheet::before{content:"";position:fixed;inset:0;background:var(--shadow);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .panel{
-  background:var(--surface);border-radius:24px 24px 0 0;max-width:520px;width:100%;margin:0 auto;
-  padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));
-  padding-block:10px calc(18px + env(safe-area-inset-bottom,0px));display:grid;gap:12px;
-  box-shadow:0 -12px 40px -20px rgba(0,0,0,.35)
+  position:absolute;inset:-12px;overflow-y:auto;overscroll-behavior:contain;
+  background:var(--surface);border-radius:24px;padding:12px 20px 20px;box-shadow:var(--lift);
+  display:grid;align-content:start;gap:8px
 }
-.panel::before{content:"";justify-self:center;width:36px;height:4px;border-radius:2px;background:var(--line-thick);opacity:.6;margin-bottom:4px}
-.panel h2{font-weight:700;font-size:1.15rem;letter-spacing:-.01em;margin:0}
-.diffs{display:grid;gap:8px}
+.sheet.center .panel{inset:auto -12px;top:50%;transform:translateY(-50%);padding:20px;overflow:visible}
+.phead{display:flex;align-items:center;gap:6px;min-height:40px;padding-right:48px;margin-bottom:6px}
+.panel h2{font-weight:700;font-size:1.2rem;letter-spacing:-.01em;margin:0;line-height:1.2}
+.back{width:40px;height:40px;margin-left:-9px;border-radius:999px;display:grid;place-items:center;color:var(--ink);flex:none}
+.back svg,.chev svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.back svg{width:22px;height:22px}
+@media (hover:hover){ .back:hover{background:var(--surface-2)} }
+.panel h3{margin:10px 16px 0;font-size:.75rem;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em}
+.note{margin:0 16px 2px;font-size:.83rem;color:var(--ink-2);line-height:1.4}
+.group{display:grid;background:var(--paper);border-radius:16px;overflow:hidden}
+.group>*+*{border-top:1px solid var(--line)}
 .diff{
-  display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;text-align:left;
-  padding:12px 16px;border-radius:14px;background:var(--paper);min-height:58px
+  display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;text-align:left;width:100%;
+  padding:12px 16px;min-height:60px
 }
+.diff:focus-visible{outline-offset:-2px}
 @media (hover:hover){ .diff:hover{background:var(--tint)} }
 .diff .name{font-weight:600;font-size:1rem}
 .diff .desc{font-size:.83rem;color:var(--ink-2)}
 .diff .stat{font-size:.78rem;color:var(--ink-2);text-align:right;white-space:nowrap}
-.opt{background:none;padding-inline:4px}
-@media (hover:hover){ .opt:hover{background:none} }
 /* The switch keeps its On/Off text for the DOM but draws a track and knob instead. */
 .opt .stat{position:relative;width:46px;height:28px;border-radius:999px;background:var(--line-thick);font-size:0;color:transparent;transition:background .15s}
 .opt .stat::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
 .opt[aria-checked="true"] .stat{background:var(--accent)}
 .opt[aria-checked="true"] .stat::after{transform:translateX(18px)}
+.chev{color:var(--ink-2);display:grid}
+.chev svg{width:18px;height:18px}
+body.locked{overflow:hidden}
+/* Help sheet: each row shows a mini cell drawn with the real board tokens, so the legend never drifts from the board. */
+.legend{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.legend li{display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:center;font-size:.88rem;color:var(--ink-2);line-height:1.4}
+.legend b{color:var(--ink);font-weight:600}
+.sw{
+  width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--surface);
+  display:grid;place-items:center;font-size:1.25rem;font-weight:500;color:var(--accent)
+}
+.sw.given{color:var(--ink);font-weight:600}
+.sw.hinted{color:var(--ok)}
+.sw.wrong{background:var(--err-bg);color:var(--err)}
+.sw.peer{background:var(--tint)}
+.sw.same{background:var(--tint-strong)}
+.sw.flash{background:var(--flash)}
+.sw.notes{grid-template:repeat(3,1fr)/repeat(3,1fr);place-items:stretch;padding:3px;font-size:.6rem;font-weight:500;color:var(--pencil)}
+.sw.notes i{font-style:normal;line-height:1;display:grid;place-items:center}
+.sw.notes i.hl{color:var(--on-accent);font-weight:700;background:var(--accent);border-radius:3px}
+.keys{font-size:.83rem;color:var(--ink-2);line-height:1.5}
+.keys kbd{font:inherit;font-size:.78rem;font-weight:600;color:var(--ink);background:var(--surface-2);border-radius:5px;padding:1px 6px}
 .big{font-size:3rem;font-weight:700;letter-spacing:-.02em;line-height:1.1}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .row .btn{flex:1}
 @media (prefers-reduced-motion:no-preference){ .cell{transition:background .12s} .tool,.key,.diff{transition:background .12s,color .12s} }
 /* Phones: board at the top, tools and pad pinned to the bottom within thumb reach. */
 @media (max-width:600px){
-  .app{align-content:stretch;grid-template-rows:auto auto 1fr auto auto auto}
+  .app{grid-template-rows:auto auto 1fr auto auto auto;min-height:calc(100vh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+  @supports (height:100dvh){ .app{min-height:calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))} }
   .key{aspect-ratio:1/1.5;font-size:1.75rem}
+  .panel{
+    position:fixed;inset:0;border-radius:0;box-shadow:none;
+    padding:calc(12px + env(safe-area-inset-top,0px)) calc(max(16px,env(safe-area-inset-right,0px)) + 8px)
+            calc(24px + env(safe-area-inset-bottom,0px)) calc(max(16px,env(safe-area-inset-left,0px)) + 8px)
+  }
+  .sheet.center .panel{position:absolute;inset:auto 0;top:50%;border-radius:24px;box-shadow:var(--lift);padding:20px}
 }
 </style>
 </head>
@@ -182,7 +230,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <header>
     <div class="title">Quiet Sudoku</div>
     <div class="meta"><span id="diffLabel">Medium</span><span>·</span><b id="timer">00:00</b></div>
-    <button class="btn soft" id="newBtn">New</button>
+    <button class="btn soft icon" id="newBtn" aria-label="Menu" aria-expanded="false"><svg class="lines" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg><svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12"/><path d="M18 6 6 18"/></svg></button>
   </header>
 
   <div class="board" id="board" aria-label="Sudoku grid"></div>
@@ -198,26 +246,47 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   <div class="pad" id="pad"></div>
   <div class="foot" id="foot"></div>
-</div>
 
-<div class="sheet" id="newSheet" hidden>
-  <div class="panel">
-    <h2>New puzzle</h2>
-    <div class="status" id="newInfo" style="text-align:left" hidden></div>
-    <div class="diffs" id="diffs"></div>
-    <button class="diff opt" id="liveBtn" role="switch" aria-checked="false"><span><span class="name">Show mistakes</span><br><span class="desc">Wrong digits turn red as you place them. Best times skip these games.</span></span><span class="stat" id="liveState">Off</span></button>
-    <button class="btn" id="cancelNew">Keep playing</button>
+  <div class="sheet" id="newSheet" hidden>
+    <div class="panel">
+      <div class="phead"><h2>Menu</h2></div>
+      <h3>New puzzle</h3>
+      <div class="note" id="newInfo" hidden></div>
+      <div class="group" id="diffs"></div>
+      <h3>Options</h3>
+      <div class="group">
+        <button class="diff opt" id="liveBtn" role="switch" aria-checked="false"><span><span class="name">Show mistakes</span><br><span class="desc">Wrong digits turn red as you place them. Best times skip these games.</span></span><span class="stat" id="liveState">Off</span></button>
+        <button class="diff opt" id="helpBtn"><span><span class="name">What the colours mean</span><br><span class="desc">Clues, your digits, hints, mistakes and highlights.</span></span><span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span></button>
+      </div>
+    </div>
   </div>
-</div>
 
-<div class="sheet" id="doneSheet" hidden>
-  <div class="panel">
-    <h2>Solved</h2>
-    <div class="big" id="doneTime">00:00</div>
-    <div id="doneInfo" class="status" style="text-align:left"></div>
-    <div class="row">
-      <button class="btn primary" id="againBtn">Another one</button>
-      <button class="btn" id="changeBtn">Change level</button>
+  <div class="sheet" id="helpSheet" hidden>
+    <div class="panel">
+      <div class="phead"><button class="back" id="helpBack" aria-label="Back to menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button><h2>What the colours mean</h2></div>
+      <ul class="legend">
+        <li><span class="sw given">7</span><span><b>Dark digit.</b> A clue from the puzzle. It cannot be changed.</span></li>
+        <li><span class="sw">7</span><span><b>Blue digit.</b> Yours.</span></li>
+        <li><span class="sw hinted">7</span><span><b>Green digit.</b> Placed by Hint. Always correct.</span></li>
+        <li><span class="sw wrong">7</span><span><b>Red on red.</b> Your digit repeats one in its row, column or box, or Check (or Show mistakes) found it wrong. Clues and hints are never marked, so the red one is the one to fix.</span></li>
+        <li><span class="sw peer"></span><span><b>Light tint.</b> The row, column and box of the selected cell.</span></li>
+        <li><span class="sw same">7</span><span><b>Stronger tint.</b> Cells holding the same digit as the selected one.</span></li>
+        <li><span class="sw notes"><i>1</i><i></i><i>3</i><i></i><i>5</i><i></i><i class="hl">7</i><i></i><i></i></span><span><b>Highlighted pencil mark.</b> Matches the selected digit.</span></li>
+        <li><span class="sw flash"></span><span><b>Green flash.</b> A row, column or box just filled with no repeats. It only checks the rules, not the solution.</span></li>
+      </ul>
+      <div class="keys">Keyboard: <kbd>1</kbd>–<kbd>9</kbd> place, <kbd>⌫</kbd> erase, <kbd>N</kbd> pencil, arrows move, <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undo, <kbd>Esc</kbd> close this.</div>
+    </div>
+  </div>
+
+  <div class="sheet center" id="doneSheet" hidden>
+    <div class="panel">
+      <h2>Solved</h2>
+      <div class="big" id="doneTime">00:00</div>
+      <div id="doneInfo" class="status" style="text-align:left"></div>
+      <div class="row">
+        <button class="btn primary" id="againBtn">Another one</button>
+        <button class="btn" id="changeBtn">Change level</button>
+      </div>
     </div>
   </div>
 </div>
@@ -421,8 +490,10 @@ function openNew(){ const box=$('diffs'); box.innerHTML='';
   const started=!S.solved&&(done>0||S.notes.some(Boolean));
   $('newInfo').hidden=!started;
   if(started)$('newInfo').textContent='You\'re '+fmt(S.elapsed).replace(/^0(?=\d:)/,'')+' into a '+DIFFS[S.diff].label+', '+done+' of '+open+' cells filled. Picking a level starts over.';
-  $('newSheet').hidden=false; }
-function startNew(k){ $('newSheet').hidden=true; $('doneSheet').hidden=true; boardEl.classList.add('dealing'); setStatus('Dealing a new '+DIFFS[k].label.toLowerCase()+' puzzle…');
+  $('newSheet').hidden=false; setMenu(true); }
+function setMenu(open){ const b=$('newBtn'); b.classList.toggle('open',open); b.setAttribute('aria-expanded',String(open)); b.setAttribute('aria-label',open?'Close':'Menu'); document.body.classList.toggle('locked',open); if(open)window.scrollTo(0,0); }
+function closeMenu(){ $('newSheet').hidden=true; $('helpSheet').hidden=true; setMenu(false); }
+function startNew(k){ closeMenu(); $('doneSheet').hidden=true; boardEl.classList.add('dealing'); setStatus('Dealing a new '+DIFFS[k].label.toLowerCase()+' puzzle…');
   setTimeout(()=>{ fresh(k); boardEl.classList.remove('dealing'); setStatus(''); render(); save(); startTimer(); },30); }
 
 /* ---------- events ---------- */
@@ -433,14 +504,17 @@ $('eraseBtn').addEventListener('click',erase);
 $('pencilBtn').addEventListener('click',()=>{ S.pencil=!S.pencil; render(); save(); });
 $('hintBtn').addEventListener('click',hint);
 $('checkBtn').addEventListener('click',check);
-$('newBtn').addEventListener('click',openNew);
-$('cancelNew').addEventListener('click',()=>{ $('newSheet').hidden=true; });
+$('newBtn').addEventListener('click',()=>{ if($('newBtn').classList.contains('open'))closeMenu(); else openNew(); });
+$('helpBtn').addEventListener('click',()=>{ $('newSheet').hidden=true; $('helpSheet').hidden=false; $('helpBack').focus(); });
+$('helpBack').addEventListener('click',()=>{ $('helpSheet').hidden=true; openNew(); $('helpBtn').focus(); });
+for(const id of ['newSheet','helpSheet']) $(id).addEventListener('click',e=>{ if(e.target===e.currentTarget)closeMenu(); });
 $('liveBtn').addEventListener('click',()=>{ prefs.live=!prefs.live; if(prefs.live&&!S.solved)S.assisted=true; S.wrong=[]; setStatus(''); render(); save(); });
 $('diffs').addEventListener('click',e=>{ const b=e.target.closest('.diff'); if(b)startNew(b.dataset.k); });
 $('againBtn').addEventListener('click',()=>startNew(S.diff));
 $('changeBtn').addEventListener('click',()=>{ $('doneSheet').hidden=true; openNew(); });
 document.addEventListener('keydown',e=>{
-  if(!S||!$('newSheet').hidden||!$('doneSheet').hidden)return;
+  if(e.key==='Escape'){ if($('newBtn').classList.contains('open')){ closeMenu(); $('newBtn').focus(); } return; }
+  if(!S||!$('newSheet').hidden||!$('doneSheet').hidden||!$('helpSheet').hidden)return;
   if(e.key>='1'&&e.key<='9'){place(+e.key);e.preventDefault();return;}
   if(e.key==='Backspace'||e.key==='Delete'||e.key==='0'){erase();e.preventDefault();return;}
   if(e.key==='n'||e.key==='N'){S.pencil=!S.pencil;render();return;}
