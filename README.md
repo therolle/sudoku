@@ -2,8 +2,8 @@
 
 Ad-free sudoku as a single static page. No backend, no account, no tracking.
 
-- Unlimited puzzles generated in the browser (pure code: randomised backtracking fill, symmetric digging with a uniqueness check, singles-only grader for difficulty).
-- Four levels: Easy 40 clues, Medium 33, Hard 28, Expert 24.
+- Unlimited puzzles generated in the browser (pure code: randomised backtracking fill, symmetric digging with a uniqueness check, a human-technique grader for difficulty).
+- Four levels graded by the hardest technique a puzzle needs: Easy (naked singles), Medium (hidden singles), Hard (box-line interactions, pairs, triples), Expert (X-wing, Y-wing, swordfish). None requires guessing.
 - Pencil marks, undo, erase, hint, check, conflict highlighting, timer, per-level stats.
 - Optional "Show mistakes" mode (in the menu): wrong digits turn red as you place them and Check is hidden. Games played this way do not set best times.
 - Menu (hamburger, top right) holds the level picker, options and a colour legend explaining every marker on the board.

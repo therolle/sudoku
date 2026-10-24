@@ -301,6 +301,7 @@ body.locked{overflow:hidden}
   </div>
 </div>
 
+<script src="grader.js"></script>
 <script>
 (function(){
 'use strict';
@@ -349,31 +350,25 @@ function dig(full,target){
     if(countSolutions(g,2)!==1){ idx.forEach((k,n)=>g[k]=saved[n]); } else { clues-=idx.length; if(clues<=target)break; } }
   return g;
 }
-function singlesOnly(p){
-  const g=p.slice(); const {rows,cols,boxes}=masks(g);
-  const cand=i=>g[i]?0:(~(rows[R(i)]|cols[C(i)]|boxes[B(i)])&511);
-  const place=(i,d)=>{ g[i]=d; const m=1<<(d-1); rows[R(i)]|=m; cols[C(i)]|=m; boxes[B(i)]|=m; };
-  let progress=true;
-  while(progress){ progress=false;
-    for(let i=0;i<81;i++){ if(g[i])continue; const m=cand(i); if(m===0)return false; if(POP[m]===1){ place(i,31-Math.clz32(m)+1); progress=true; } }
-    if(progress)continue;
-    for(const unit of UNITS){ for(let d=0;d<9;d++){ const bit=1<<d; let where=-1,cnt=0;
-      for(const i of unit){ if(g[i]===d+1){cnt=-1;break;} if(!g[i]&&(cand(i)&bit)){cnt++;where=i;} }
-      if(cnt===1){ place(where,d+1); progress=true; } } }
-  }
-  return g.every(v=>v>0);
-}
+// Difficulty is decided by Grader.level (grader.js), which bands puzzles by the hardest
+// solving technique they need. `clues` only sets how sparse the grid looks.
 const DIFFS={
-  easy:{label:'Easy',clues:40,singles:true,desc:'Plenty of clues. Solves with singles.'},
-  medium:{label:'Medium',clues:33,singles:true,desc:'Fewer clues, still no guessing.'},
-  hard:{label:'Hard',clues:28,singles:false,desc:'Needs pairs and pencil marks.'},
-  expert:{label:'Expert',clues:24,singles:false,desc:'Sparse grid. Bring patience.'}
+  easy:{label:'Easy',clues:40,desc:'Plenty of clues. Solves with singles.'},
+  medium:{label:'Medium',clues:33,desc:'Hidden singles, still no guessing.'},
+  hard:{label:'Hard',clues:28,desc:'Needs pairs and pencil marks.'},
+  expert:{label:'Expert',clues:24,desc:'Wings and fish. Still no guessing.'}
 };
+const MAX_ATTEMPTS=400;
 function generate(key){
-  const cfg=DIFFS[key]; let out=null;
-  for(let a=0;a<10;a++){ const full=fillGrid(); const p=dig(full,cfg.clues); out={puzzle:p,solution:full};
-    if(singlesOnly(p)===cfg.singles)break; }
-  return out;
+  // Deal and grade until a puzzle lands in the requested band. A dig is a few
+  // milliseconds, and the sparsest band still fits about one attempt in ten, so this
+  // normally returns well under 100 ms. If the cap is hit, hand over the nearest band.
+  const cfg=DIFFS[key]; const want=Grader.LEVELS.indexOf(key); let best=null,bestDist=Infinity;
+  for(let a=0;a<MAX_ATTEMPTS;a++){ const full=fillGrid(); const p=dig(full,cfg.clues); const lvl=Grader.level(Grader.grade(p));
+    const dist=lvl===null?Infinity:Math.abs(Grader.LEVELS.indexOf(lvl)-want);
+    if(best===null||dist<bestDist){ best={puzzle:p,solution:full}; bestDist=dist; }
+    if(dist===0)break; }
+  return best;
 }
 
 /* ---------- state ---------- */
