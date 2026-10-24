@@ -101,11 +101,11 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .cell.peer{background:var(--tint)}
 .cell.same{background:var(--tint-strong)}
 .cell.selected{background:var(--sel);box-shadow:inset 0 0 0 2px var(--accent)}
-.cell.wrong{background:var(--err-bg)}
+.cell.wrong,.cell.conflict:not(.given):not(.hinted){background:var(--err-bg)}
 .v{font-size:5.4cqw;line-height:1;color:var(--accent);font-weight:500}
 .cell.given .v{color:var(--ink);font-weight:600}
 .cell.hinted .v{color:var(--ok)}
-.cell.conflict .v,.cell.wrong .v{color:var(--err)}
+.cell.conflict:not(.given):not(.hinted) .v,.cell.wrong .v{color:var(--err)}
 .n{display:grid;grid-template-columns:repeat(3,1fr);width:100%;height:100%;padding:4%}
 .n i{font-style:normal;font-size:2.4cqw;font-weight:500;line-height:1;color:var(--pencil);display:grid;place-items:center;visibility:hidden}
 .n i.on{visibility:visible}
