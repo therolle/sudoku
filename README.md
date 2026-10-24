@@ -7,6 +7,7 @@ Ad-free sudoku as a single static page. No backend, no account, no tracking.
 - Pencil marks, undo, erase, hint, check, conflict highlighting, timer, per-level stats.
 - Optional "Show mistakes" mode (in the menu): wrong digits turn red as you place them and Check is hidden. Games played this way do not set best times.
 - Menu (hamburger, top right) holds the level picker, options and a colour legend explaining every marker on the board.
+- Two rules-only aids in Options: row/column/box highlighting (on by default) and, on top of it, "Cell assist" (off by default), which adds a light grey to every cell where the selected digit can no longer go. Like "Show mistakes", Cell assist games do not set best times.
 - Progress is saved in localStorage. Installable as a PWA; works offline after first load.
 
 ## Files

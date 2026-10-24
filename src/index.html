@@ -23,7 +23,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   --paper:#F4F5F8; --ink:#151A26; --ink-2:#646C7C;
   --line:#E3E6EC; --line-thick:#B4BAC6;
   --accent:#3360E0; --on-accent:#FFFFFF; --pencil:#7A8291; --ok:#1F8A4C;
-  --tint:rgba(51,96,224,.07); --tint-strong:rgba(51,96,224,.16); --sel:rgba(51,96,224,.24);
+  --tint:rgba(51,96,224,.07); --tint-strong:rgba(51,96,224,.16); --sel:rgba(51,96,224,.24); --dead:rgba(21,26,38,.1);
   --err:#C93A2E; --err-bg:rgba(201,58,46,.12); --flash:rgba(31,138,76,.22);
   --surface:#FFFFFF; --surface-2:#EBEDF2; --shadow:rgba(21,26,38,.28);
   --lift:0 1px 2px rgba(21,26,38,.05),0 12px 32px -14px rgba(21,26,38,.22);
@@ -34,7 +34,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   --paper:#0F1117; --ink:#E9EBF1; --ink-2:#9198A6;
   --line:#272B36; --line-thick:#4B5262;
   --accent:#86A8FF; --on-accent:#0F1117; --pencil:#8C93A0; --ok:#5CCB8A;
-  --tint:rgba(134,168,255,.09); --tint-strong:rgba(134,168,255,.22); --sel:rgba(134,168,255,.32);
+  --tint:rgba(134,168,255,.09); --tint-strong:rgba(134,168,255,.22); --sel:rgba(134,168,255,.32); --dead:rgba(0,0,0,.18);
   --err:#FF7F7F; --err-bg:rgba(255,127,127,.16); --flash:rgba(92,203,138,.26);
   --surface:#181B23; --surface-2:#222632; --shadow:rgba(0,0,0,.6);
   --lift:0 0 0 1px rgba(255,255,255,.03),0 16px 40px -18px rgba(0,0,0,.8);
@@ -45,7 +45,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   --paper:#0F1117; --ink:#E9EBF1; --ink-2:#9198A6;
   --line:#272B36; --line-thick:#4B5262;
   --accent:#86A8FF; --on-accent:#0F1117; --pencil:#8C93A0; --ok:#5CCB8A;
-  --tint:rgba(134,168,255,.09); --tint-strong:rgba(134,168,255,.22); --sel:rgba(134,168,255,.32);
+  --tint:rgba(134,168,255,.09); --tint-strong:rgba(134,168,255,.22); --sel:rgba(134,168,255,.32); --dead:rgba(0,0,0,.18);
   --err:#FF7F7F; --err-bg:rgba(255,127,127,.16); --flash:rgba(92,203,138,.26);
   --surface:#181B23; --surface-2:#222632; --shadow:rgba(0,0,0,.6);
   --lift:0 0 0 1px rgba(255,255,255,.03),0 16px 40px -18px rgba(0,0,0,.8);
@@ -108,6 +108,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 }
 .cell>*{grid-area:1/1}
 .cell.peer{background:var(--tint)}
+.cell.dead{background:linear-gradient(var(--dead),var(--dead)) var(--surface)}
+.cell.peer.dead{background:linear-gradient(var(--dead),var(--dead)) var(--tint)}
 .cell.same{background:var(--tint-strong)}
 .cell.selected{background:var(--sel);box-shadow:inset 0 0 0 2px var(--accent)}
 .cell.wrong,.cell.conflict:not(.given):not(.hinted){background:var(--err-bg)}
@@ -169,7 +171,9 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (hover:hover){ .back:hover{background:var(--surface-2)} }
 .panel h3{margin:10px 16px 0;font-size:.75rem;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em}
 .note{margin:0 16px 2px;font-size:.83rem;color:var(--ink-2);line-height:1.4}
-.group{display:grid;background:var(--paper);border-radius:16px;overflow:hidden}
+.group{display:grid;background:var(--paper);border-radius:16px}
+.group>:first-child{border-radius:16px 16px 0 0}
+.group>:last-child{border-radius:0 0 16px 16px}
 .group>*+*{border-top:1px solid var(--line)}
 .diff{
   display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;text-align:left;width:100%;
@@ -181,6 +185,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .diff .desc{font-size:.83rem;color:var(--ink-2)}
 .diff .stat{font-size:.78rem;color:var(--ink-2);text-align:right;white-space:nowrap}
 /* The switch keeps its On/Off text for the DOM but draws a track and knob instead. */
+.opt:disabled{opacity:.45;cursor:default}
 .opt .stat{position:relative;width:46px;height:28px;border-radius:999px;background:var(--line-thick);font-size:0;color:transparent;transition:background .15s}
 .opt .stat::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
 .opt[aria-checked="true"] .stat{background:var(--accent)}
@@ -200,6 +205,7 @@ body.locked{overflow:hidden}
 .sw.hinted{color:var(--ok)}
 .sw.wrong{background:var(--err-bg);color:var(--err)}
 .sw.peer{background:var(--tint)}
+.sw.dead{background:var(--dead)}
 .sw.same{background:var(--tint-strong)}
 .sw.flash{background:var(--flash)}
 .sw.notes{grid-template:repeat(3,1fr)/repeat(3,1fr);place-items:stretch;padding:3px;font-size:.6rem;font-weight:500;color:var(--pencil)}
@@ -255,7 +261,9 @@ body.locked{overflow:hidden}
       <div class="group" id="diffs"></div>
       <h3>Options</h3>
       <div class="group">
-        <button class="diff opt" id="liveBtn" role="switch" aria-checked="false"><span><span class="name">Show mistakes</span><br><span class="desc">Wrong digits turn red as you place them. Best times skip these games.</span></span><span class="stat" id="liveState">Off</span></button>
+        <button class="diff opt" id="peersBtn" role="switch" aria-checked="true"><span><span class="name">Highlight row, column and box</span><br><span class="desc">Tints the cells that share a line or box with the selected cell.</span></span><span class="stat">On</span></button>
+        <button class="diff opt" id="assistBtn" role="switch" aria-checked="false"><span><span class="name">Cell assist</span><br><span class="desc">Adds a light grey to every cell where the selected digit can no longer go. Needs the highlight above. Best times skip these games.</span></span><span class="stat">Off</span></button>
+        <button class="diff opt" id="liveBtn" role="switch" aria-checked="false"><span><span class="name">Show mistakes</span><br><span class="desc">Wrong digits turn red as you place them. Best times skip these games.</span></span><span class="stat">Off</span></button>
         <button class="diff opt" id="helpBtn"><span><span class="name">What the colours mean</span><br><span class="desc">Clues, your digits, hints, mistakes and highlights.</span></span><span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span></button>
       </div>
     </div>
@@ -269,7 +277,8 @@ body.locked{overflow:hidden}
         <li><span class="sw">7</span><span><b>Blue digit.</b> Yours.</span></li>
         <li><span class="sw hinted">7</span><span><b>Green digit.</b> Placed by Hint. Always correct.</span></li>
         <li><span class="sw wrong">7</span><span><b>Red on red.</b> Your digit repeats one in its row, column or box, or Check (or Show mistakes) found it wrong. Clues and hints are never marked, so the red one is the one to fix.</span></li>
-        <li><span class="sw peer"></span><span><b>Light tint.</b> The row, column and box of the selected cell.</span></li>
+        <li><span class="sw peer"></span><span><b>Light tint.</b> The row, column and box of the selected cell. Switch it off in Options.</span></li>
+        <li><span class="sw dead"></span><span><b>Grey.</b> With Cell assist on: every cell where the selected digit can no longer go, because its row, column or box already has one.</span></li>
         <li><span class="sw same">7</span><span><b>Stronger tint.</b> Cells holding the same digit as the selected one.</span></li>
         <li><span class="sw notes"><i>1</i><i></i><i>3</i><i></i><i>5</i><i></i><i class="hl">7</i><i></i><i></i></span><span><b>Highlighted pencil mark.</b> Matches the selected digit.</span></li>
         <li><span class="sw flash"></span><span><b>Green flash.</b> A row, column or box just filled with no repeats. It only checks the rules, not the solution.</span></li>
@@ -369,11 +378,11 @@ function generate(key){
 /* ---------- state ---------- */
 const KEY='quiet-sudoku-v1';
 let S=null; let stats={solved:{easy:0,medium:0,hard:0,expert:0},best:{easy:null,medium:null,hard:null,expert:null}};
-let prefs={live:false};
+let prefs={live:false,peers:true,assist:false};
 let timerId=null;
-// S.assisted: live mistakes were on at some point this game, so its time does not count as a best.
+// S.assisted: Show mistakes or Cell assist was on at some point this game, so its time does not count as a best.
 function fresh(key){ const {puzzle,solution}=generate(key);
-  S={diff:key,puzzle,solution,cells:puzzle.slice(),notes:new Array(81).fill(0),elapsed:0,hints:0,solved:false,sel:puzzle.indexOf(0),pencil:false,undo:[],wrong:[],hinted:[],assisted:prefs.live}; }
+  S={diff:key,puzzle,solution,cells:puzzle.slice(),notes:new Array(81).fill(0),elapsed:0,hints:0,solved:false,sel:puzzle.indexOf(0),pencil:false,undo:[],wrong:[],hinted:[],assisted:prefs.live||prefs.assist}; }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify({S:{...S,undo:S.undo.slice(-30)},stats,prefs})); }catch(e){} }
 function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.S&&d.S.puzzle){ S=d.S; S.undo=S.undo||[]; S.wrong=S.wrong||[]; S.hinted=S.hinted||[]; } if(d&&d.stats) stats=d.stats; if(d&&d.prefs) prefs={...prefs,...d.prefs}; }catch(e){} }
 
@@ -398,11 +407,14 @@ function render(){
   const counts=new Array(10).fill(0); for(const v of S.cells) counts[v]++;
   const wrong=new Set(S.wrong), hinted=new Set(S.hinted);
   if(prefs.live) for(let i=0;i<81;i++) if(!S.puzzle[i]&&S.cells[i]&&S.cells[i]!==S.solution[i]) wrong.add(i);
+  // Cell assist: every peer of every copy of the selected digit, i.e. where that digit cannot go. Rules only, no solution peeking.
+  let dead=null;
+  if(prefs.peers&&prefs.assist&&selVal){ dead=new Array(81).fill(false); for(let i=0;i<81;i++) if(S.cells[i]===selVal) for(const j of PEERS[i]) dead[j]=true; }
   for(let i=0;i<81;i++){ const el=cellEls[i], v=S.cells[i];
     let cls='cell';
     if(S.puzzle[i])cls+=' given';
     if(v)cls+=' filled';
-    if(sel!=null){ if(i===sel)cls+=' selected'; else if(R(i)===R(sel)||C(i)===C(sel)||B(i)===B(sel))cls+=' peer'; if(selVal&&v===selVal&&i!==sel)cls+=' same'; }
+    if(sel!=null){ if(i===sel)cls+=' selected'; else if(prefs.peers&&(R(i)===R(sel)||C(i)===C(sel)||B(i)===B(sel)))cls+=' peer'; if(dead&&dead[i]&&i!==sel)cls+=' dead'; if(selVal&&v===selVal&&i!==sel)cls+=' same'; }
     if(conflict[i])cls+=' conflict';
     if(wrong.has(i))cls+=' wrong';
     if(hinted.has(i))cls+=' hinted';
@@ -419,7 +431,8 @@ function render(){
   $('undoBtn').disabled=S.undo.length===0;
   $('eraseBtn').disabled=sel==null||S.solved||!!S.puzzle[sel]||(!S.cells[sel]&&!S.notes[sel]);
   $('checkBtn').hidden=prefs.live; $('tools').classList.toggle('live',prefs.live);
-  $('liveBtn').setAttribute('aria-checked',String(prefs.live)); $('liveState').textContent=prefs.live?'On':'Off';
+  for(const [id,k] of [['peersBtn','peers'],['assistBtn','assist'],['liveBtn','live']]){ $(id).setAttribute('aria-checked',String(prefs[k])); $(id).lastChild.textContent=prefs[k]?'On':'Off'; }
+  $('assistBtn').disabled=!prefs.peers;
   const total=Object.values(stats.solved).reduce((a,b)=>a+b,0);
   const bests=Object.keys(DIFFS).filter(k=>stats.best[k]!=null).map(k=>DIFFS[k].label.toLowerCase()+' '+fmt(stats.best[k]));
   $('foot').textContent=(total?'Solved '+total+(bests.length?' · best '+bests.join(', '):''):'No ads. No account. Just the grid.');
@@ -471,7 +484,7 @@ function checkDone(){
   if(!S.assisted&&(prev==null||S.elapsed<prev))stats.best[S.diff]=S.elapsed;
   $('doneTime').textContent=fmt(S.elapsed);
   const best=!S.assisted&&prev!=null&&S.elapsed<prev?' New best for this level.':'';
-  $('doneInfo').textContent=DIFFS[S.diff].label+', '+(S.hints?S.hints+(S.hints===1?' hint':' hints'):'no hints')+(S.assisted?', mistakes shown':'')+'.'+best;
+  $('doneInfo').textContent=DIFFS[S.diff].label+', '+(S.hints?S.hints+(S.hints===1?' hint':' hints'):'no hints')+(S.assisted?', assisted':'')+'.'+best;
   $('doneSheet').hidden=false; render(); save();
 }
 
@@ -508,6 +521,8 @@ $('newBtn').addEventListener('click',()=>{ if($('newBtn').classList.contains('op
 $('helpBtn').addEventListener('click',()=>{ $('newSheet').hidden=true; $('helpSheet').hidden=false; $('helpBack').focus(); });
 $('helpBack').addEventListener('click',()=>{ $('helpSheet').hidden=true; openNew(); $('helpBtn').focus(); });
 for(const id of ['newSheet','helpSheet']) $(id).addEventListener('click',e=>{ if(e.target===e.currentTarget)closeMenu(); });
+$('peersBtn').addEventListener('click',()=>{ prefs.peers=!prefs.peers; if(!prefs.peers)prefs.assist=false; render(); save(); });
+$('assistBtn').addEventListener('click',()=>{ prefs.assist=!prefs.assist; if(prefs.assist&&!S.solved)S.assisted=true; render(); save(); });
 $('liveBtn').addEventListener('click',()=>{ prefs.live=!prefs.live; if(prefs.live&&!S.solved)S.assisted=true; S.wrong=[]; setStatus(''); render(); save(); });
 $('diffs').addEventListener('click',e=>{ const b=e.target.closest('.diff'); if(b)startNew(b.dataset.k); });
 $('againBtn').addEventListener('click',()=>startNew(S.diff));
