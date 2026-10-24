@@ -311,7 +311,13 @@ const POP=new Array(512).fill(0); for(let m=1;m<512;m++) POP[m]=POP[m>>1]+(m&1);
 const PEERS=[]; const UNITS=[];
 for(let i=0;i<81;i++){ const a=[]; for(let j=0;j<81;j++) if(j!==i&&(R(i)===R(j)||C(i)===C(j)||B(i)===B(j))) a.push(j); PEERS.push(a); }
 for(let u=0;u<9;u++){ const r=[],c=[],b=[]; for(let i=0;i<81;i++){ if(R(i)===u)r.push(i); if(C(i)===u)c.push(i); if(B(i)===u)b.push(i); } UNITS.push(r,c,b); }
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
+// Seeded randomness (FNV-1a string hash into mulberry32). Every shuffle in the engine
+// draws from it, so generate(key,seed) always deals the same puzzle for the same seed,
+// as long as dig and the grader bands stay the same.
+let rngState=0;
+function seedRng(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } rngState=h>>>0; }
+function rand(){ rngState=(rngState+0x6D2B79F5)|0; let t=Math.imul(rngState^(rngState>>>15),1|rngState); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(rand()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function masks(g){ const rows=new Array(9).fill(0),cols=new Array(9).fill(0),boxes=new Array(9).fill(0);
   for(let i=0;i<81;i++) if(g[i]){ const m=1<<(g[i]-1); rows[R(i)]|=m; cols[C(i)]|=m; boxes[B(i)]|=m; } return {rows,cols,boxes}; }
 function countSolutions(src,limit){
@@ -359,10 +365,11 @@ const DIFFS={
   expert:{label:'Expert',clues:24,desc:'Wings and fish. Still no guessing.'}
 };
 const MAX_ATTEMPTS=400;
-function generate(key){
+function generate(key,seed){
   // Deal and grade until a puzzle lands in the requested band. A dig is a few
   // milliseconds, and the sparsest band still fits about one attempt in ten, so this
   // normally returns well under 100 ms. If the cap is hit, hand over the nearest band.
+  seedRng(seed);
   const cfg=DIFFS[key]; const want=Grader.LEVELS.indexOf(key); let best=null,bestDist=Infinity;
   for(let a=0;a<MAX_ATTEMPTS;a++){ const full=fillGrid(); const p=dig(full,cfg.clues); const lvl=Grader.level(Grader.grade(p));
     const dist=lvl===null?Infinity:Math.abs(Grader.LEVELS.indexOf(lvl)-want);
@@ -377,8 +384,13 @@ let S=null; let stats={solved:{easy:0,medium:0,hard:0,expert:0},best:{easy:null,
 let prefs={live:false,peers:true,assist:false};
 let timerId=null;
 // S.assisted: Show mistakes or Cell assist was on at some point this game, so its time does not count as a best.
-function fresh(key){ const {puzzle,solution}=generate(key);
-  S={diff:key,puzzle,solution,cells:puzzle.slice(),notes:new Array(81).fill(0),elapsed:0,hints:0,solved:false,sel:puzzle.indexOf(0),pencil:false,undo:[],wrong:[],hinted:[],assisted:prefs.live||prefs.assist}; }
+// Seeds are "YYYY-MM-DD/level/n" in local time, n counting the deals of that level that
+// day. So everyone's first Medium of the day is the same puzzle, the second is the same
+// second puzzle, and a replay never repeats. The counter lives in stats so it survives reloads.
+function today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function nextSeed(key){ const day=today(); if(stats.day!==day){ stats.day=day; stats.dealt={}; } const n=(stats.dealt[key]||0)+1; stats.dealt[key]=n; return day+'/'+key+'/'+n; }
+function fresh(key){ const seed=nextSeed(key); const {puzzle,solution}=generate(key,seed);
+  S={diff:key,seed,puzzle,solution,cells:puzzle.slice(),notes:new Array(81).fill(0),elapsed:0,hints:0,solved:false,sel:puzzle.indexOf(0),pencil:false,undo:[],wrong:[],hinted:[],assisted:prefs.live||prefs.assist}; }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify({S:{...S,undo:S.undo.slice(-30)},stats,prefs})); }catch(e){} }
 function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.S&&d.S.puzzle){ S=d.S; S.undo=S.undo||[]; S.wrong=S.wrong||[]; S.hinted=S.hinted||[]; } if(d&&d.stats) stats=d.stats; if(d&&d.prefs) prefs={...prefs,...d.prefs}; }catch(e){} }
 

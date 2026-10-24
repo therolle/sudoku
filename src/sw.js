@@ -1,6 +1,6 @@
 // Quiet Sudoku service worker: cache the app shell so it opens offline.
 // Bump CACHE when index.html changes so clients pick up the new version.
-const CACHE = 'quiet-sudoku-v12';
+const CACHE = 'quiet-sudoku-v13';
 const SHELL = ['./', './index.html', './grader.js', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
